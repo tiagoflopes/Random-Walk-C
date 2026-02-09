@@ -222,6 +222,7 @@ int main(int argc, const char *argv[]) {
     }
 
     free(pagents);
+    return 0;
 
 }
 
