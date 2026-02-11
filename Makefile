@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -Wall -Wextra
-LIBS = `pkg-config --cflags --libs sdl2` -lm
+LIBS = `pkg-config --cflags --libs sdl3` -lm
 TARGET = random-walk
 SRC = random-walk.c
 ARGS = 

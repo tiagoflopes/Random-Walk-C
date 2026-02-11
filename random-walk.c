@@ -1,5 +1,5 @@
 #include<math.h>
-#include<SDL2/SDL.h>
+#include<SDL3/SDL.h>
 #include<stdbool.h>
 #include<stdio.h>
 #include<stdlib.h>
@@ -62,7 +62,7 @@ Uint32 get_color(SDL_Surface *psurface, int num_agents, int agent) {
         default: r = 0, g = 0, b = 0;
 	}
 	
-	return SDL_MapRGB(psurface->format, r*255, g*255, b*255);
+	return SDL_MapSurfaceRGB(psurface, r*255, g*255, b*255);
 
 }
 
@@ -164,13 +164,14 @@ void update_agents(SDL_Surface *psurface, Agent *pagents, int num_agents) {
         Velocity v = get_rand_vel(pa);
         pa->v = v;
 
+        SDL_Rect r;
         for (int j = 0; j < SCALE; j++) {
 
             pa->x += v.vx;
             pa->y += v.vy;
 
-            SDL_Rect r = (SDL_Rect) {pa->x, pa->y, RECT_L, RECT_L};
-            SDL_FillRect(psurface, &r, pa->color);
+            r = (SDL_Rect) {pa->x, pa->y, RECT_L, RECT_L};
+            SDL_FillSurfaceRect(psurface, &r, pa->color);
 
         }
 
@@ -196,7 +197,7 @@ int main(int argc, const char *argv[]) {
 
     srand(time(NULL));
 
-    SDL_Window *pwindow = SDL_CreateWindow("Random Walk", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WIDTH, HEIGHT, 0);
+    SDL_Window *pwindow = SDL_CreateWindow("Random Walk", WIDTH, HEIGHT, 0);
     SDL_Surface *psurface = SDL_GetWindowSurface(pwindow);
 
     Agent *pagents = calloc(num_agents, sizeof(Agent));
@@ -208,7 +209,7 @@ int main(int argc, const char *argv[]) {
         SDL_Event event;
         while (SDL_PollEvent(&event)) {
 
-            if (event.type == SDL_QUIT) {
+            if (event.type == SDL_EVENT_QUIT) {
                 running = 0;
             }
 
