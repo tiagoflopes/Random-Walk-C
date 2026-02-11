@@ -30,7 +30,7 @@ typedef struct {
 } Agent;
 
 
-int get_rand_x(int max) {
+int get_rand_coord(int max) {
 
     int sec = max / SCALE;
     return rand() % sec * SCALE + SCALE / 2;
@@ -38,7 +38,7 @@ int get_rand_x(int max) {
 }
 
 
-Uint32 get_color(int num_agents, int agent) {
+Uint32 get_color(SDL_Surface *psurface, int num_agents, int agent) {
 
     float r, g, b;
 	
@@ -62,7 +62,7 @@ Uint32 get_color(int num_agents, int agent) {
         default: r = 0, g = 0, b = 0;
 	}
 	
-	return ((Uint32) (r * 255) << 16) | ((Uint32) (g * 255) << 8) | ((Uint32) (b * 255));
+	return SDL_MapRGB(psurface->format, r*255, g*255, b*255);
 
 }
 
@@ -92,7 +92,7 @@ bool is_valid(Agent *a, Velocity v) {
 }
 
 
-Velocity get_rand_v(Agent *a) {
+Velocity get_rand_vel(Agent *a) {
 
     Velocity ret;
 
@@ -101,7 +101,6 @@ Velocity get_rand_v(Agent *a) {
 
         int choice = rand() % 4;
         switch (choice) {
-
             case 0:
                 ret = (Velocity) {1, 0};
                 break;
@@ -132,25 +131,25 @@ Velocity get_rand_v(Agent *a) {
 }
 
 
-Agent get_rand_agent(int num_agents, int agent) {
+Agent get_rand_agent(SDL_Surface *psurface, int num_agents, int agent) {
 
     Agent a;
 
-    a.x = get_rand_x(WIDTH);
-    a.y = get_rand_x(HEIGHT);
-    a.v = get_rand_v(NULL);
-    a.color = get_color(num_agents, agent);
+    a.x = get_rand_coord(WIDTH);
+    a.y = get_rand_coord(HEIGHT);
+    a.v = get_rand_vel(NULL);
+    a.color = get_color(psurface, num_agents, agent);
 
     return a;
 
 }
 
 
-void create_agents(Agent *pagents, int num_agents) {
+void create_agents(SDL_Surface *psurface, Agent *pagents, int num_agents) {
 
     for (int i = 0; i < num_agents; i++) {
 
-        pagents[i] = get_rand_agent(num_agents, i);
+        pagents[i] = get_rand_agent(psurface, num_agents, i);
 
     }
 
@@ -162,7 +161,7 @@ void update_agents(SDL_Surface *psurface, Agent *pagents, int num_agents) {
     for (int i = 0; i < num_agents; i++) {
 
         Agent *pa = &pagents[i];
-        Velocity v = get_rand_v(pa);
+        Velocity v = get_rand_vel(pa);
         pa->v = v;
 
         for (int j = 0; j < SCALE; j++) {
@@ -201,7 +200,7 @@ int main(int argc, const char *argv[]) {
     SDL_Surface *psurface = SDL_GetWindowSurface(pwindow);
 
     Agent *pagents = calloc(num_agents, sizeof(Agent));
-    create_agents(pagents, num_agents);
+    create_agents(psurface, pagents, num_agents);
 
     int running = 1;
     while (running) {
