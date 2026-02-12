@@ -9,9 +9,17 @@
 #define WIDTH 900
 #define HEIGHT 600
 
-#define RECT_L 4
-#define SCALE 10
+#define RECT_L 5 
+#define SCALE 4
+#define TRAIL_SIZE 40
 
+
+
+typedef struct {
+
+    int x, y;
+
+} Point;
 
 
 typedef struct {
@@ -25,9 +33,8 @@ typedef struct {
 
     int x, y;
     Velocity v;
-    Uint8 r;
-    Uint8 g;
-    Uint8 b;
+    Uint8 r, g, b;
+    Point trail[TRAIL_SIZE];
 
 } Agent;
 
@@ -160,27 +167,60 @@ void create_agents(Agent *pagents, int num_agents) {
 }
 
 
-void update_agents(SDL_Renderer *prenderer, Agent *pagents, int num_agents) {
+void update_agents(Agent *pagents, int num_agents) {
 
     for (int i = 0; i < num_agents; i++) {
 
         Agent *pa = &pagents[i];
+
+        for (int k = TRAIL_SIZE - 1; k > 0; k--) {
+
+            pa->trail[k] = pa->trail[k - 1];
+
+        }
+
+        pa->trail[0] = (Point) { pa->x, pa->y };
+
         Velocity v = get_rand_vel(pa);
         pa->v = v;
+        pa->x += v.vx * SCALE;
+        pa->y += v.vy * SCALE;
 
-        for (int j = 0; j < SCALE; j++) {
+    }
 
-            pa->x += v.vx;
-            pa->y += v.vy;
+}
 
-            SDL_FRect r = { (float) pa->x, (float) pa->y, RECT_L, RECT_L };
 
-            SDL_SetRenderDrawColor(prenderer, pa->r, pa->g, pa->b, SDL_ALPHA_OPAQUE);
-            SDL_RenderFillRect(prenderer, &r);
+void draw_agents(SDL_Renderer *prenderer, Agent *pagents, int num_agents) {
+
+    SDL_SetRenderDrawColor(prenderer, 0, 0, 0, 255);
+    SDL_RenderClear(prenderer);
+
+    for (int i = 0; i < num_agents; i++) {
+
+        Agent *pa = &pagents[i];
+
+        for (int k = 0; k < TRAIL_SIZE; k++) {
+
+            Point p = pa->trail[k];
+
+            if (p.x == 0 && p.y == 0) continue;
+
+            float alpha = 1.0f - ((float) k / TRAIL_SIZE);
+            SDL_SetRenderDrawColor(prenderer, pa->r * alpha, pa->g * alpha, pa->b * alpha, 255);
+
+            for (int j = 0; j < SCALE; j++) {
+
+                SDL_FRect r = { (float) p.x + (pa->v.vx * j), (float) p.y + (pa->v.vy * j), RECT_L, RECT_L };
+                SDL_RenderFillRect(prenderer, &r);
+
+            }
 
         }
 
     }
+
+    SDL_RenderPresent(prenderer);
 
 }
 
@@ -204,12 +244,6 @@ int main(int argc, const char **argv) {
 
     SDL_Window *pwindow = SDL_CreateWindow("Random Walk", WIDTH, HEIGHT, 0);
     SDL_Renderer *prenderer = SDL_CreateRenderer(pwindow, NULL);
-    SDL_Texture *ptexture = SDL_CreateTexture(prenderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, WIDTH, HEIGHT);
-
-    SDL_SetRenderTarget(prenderer, ptexture);
-    SDL_SetRenderDrawColor(prenderer, 0, 0, 0, 255);
-    SDL_RenderClear(prenderer);
-    SDL_SetRenderTarget(prenderer, NULL);
 
     Agent *pagents = calloc(num_agents, sizeof(Agent));
     create_agents(pagents, num_agents);
@@ -226,13 +260,9 @@ int main(int argc, const char **argv) {
 
         }
 
-        SDL_SetRenderTarget(prenderer, ptexture);
-        update_agents(prenderer, pagents, num_agents);
+        update_agents(pagents, num_agents);
+        draw_agents(prenderer, pagents, num_agents);
 
-        SDL_SetRenderTarget(prenderer, NULL);
-        SDL_RenderTexture(prenderer, ptexture, NULL, NULL);
-
-        SDL_RenderPresent(prenderer);
         SDL_Delay(20);
     }
 
