@@ -25,7 +25,9 @@ typedef struct {
 
     int x, y;
     Velocity v;
-    Uint32 color;
+    Uint8 r;
+    Uint8 g;
+    Uint8 b;
 
 } Agent;
 
@@ -38,7 +40,7 @@ int get_rand_coord(int max) {
 }
 
 
-Uint32 get_color(SDL_Surface *psurface, int num_agents, int agent) {
+void set_color(Agent *pagent, int num_agents, int agent) {
 
     float r, g, b;
 	
@@ -62,7 +64,9 @@ Uint32 get_color(SDL_Surface *psurface, int num_agents, int agent) {
         default: r = 0, g = 0, b = 0;
 	}
 	
-	return SDL_MapSurfaceRGB(psurface, r*255, g*255, b*255);
+    pagent->r = r * 255;
+    pagent->g = g * 255;
+    pagent->b = b * 255;
 
 }
 
@@ -131,32 +135,32 @@ Velocity get_rand_vel(Agent *a) {
 }
 
 
-Agent get_rand_agent(SDL_Surface *psurface, int num_agents, int agent) {
+Agent get_rand_agent(int num_agents, int agent) {
 
     Agent a;
 
     a.x = get_rand_coord(WIDTH);
     a.y = get_rand_coord(HEIGHT);
     a.v = get_rand_vel(NULL);
-    a.color = get_color(psurface, num_agents, agent);
+    set_color(&a, num_agents, agent);
 
     return a;
 
 }
 
 
-void create_agents(SDL_Surface *psurface, Agent *pagents, int num_agents) {
+void create_agents(Agent *pagents, int num_agents) {
 
     for (int i = 0; i < num_agents; i++) {
 
-        pagents[i] = get_rand_agent(psurface, num_agents, i);
+        pagents[i] = get_rand_agent(num_agents, i);
 
     }
 
 }
 
 
-void update_agents(SDL_Surface *psurface, Agent *pagents, int num_agents) {
+void update_agents(SDL_Renderer *prenderer, Agent *pagents, int num_agents) {
 
     for (int i = 0; i < num_agents; i++) {
 
@@ -164,14 +168,15 @@ void update_agents(SDL_Surface *psurface, Agent *pagents, int num_agents) {
         Velocity v = get_rand_vel(pa);
         pa->v = v;
 
-        SDL_Rect r;
         for (int j = 0; j < SCALE; j++) {
 
             pa->x += v.vx;
             pa->y += v.vy;
 
-            r = (SDL_Rect) {pa->x, pa->y, RECT_L, RECT_L};
-            SDL_FillSurfaceRect(psurface, &r, pa->color);
+            SDL_FRect r = { (float) pa->x, (float) pa->y, RECT_L, RECT_L };
+
+            SDL_SetRenderDrawColor(prenderer, pa->r, pa->g, pa->b, SDL_ALPHA_OPAQUE);
+            SDL_RenderFillRect(prenderer, &r);
 
         }
 
@@ -180,7 +185,7 @@ void update_agents(SDL_Surface *psurface, Agent *pagents, int num_agents) {
 }
 
 
-int main(int argc, const char *argv[]) {
+int main(int argc, const char **argv) {
 
     int num_agents;
 
@@ -198,10 +203,16 @@ int main(int argc, const char *argv[]) {
     srand(time(NULL));
 
     SDL_Window *pwindow = SDL_CreateWindow("Random Walk", WIDTH, HEIGHT, 0);
-    SDL_Surface *psurface = SDL_GetWindowSurface(pwindow);
+    SDL_Renderer *prenderer = SDL_CreateRenderer(pwindow, NULL);
+    SDL_Texture *ptexture = SDL_CreateTexture(prenderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, WIDTH, HEIGHT);
+
+    SDL_SetRenderTarget(prenderer, ptexture);
+    SDL_SetRenderDrawColor(prenderer, 0, 0, 0, 255);
+    SDL_RenderClear(prenderer);
+    SDL_SetRenderTarget(prenderer, NULL);
 
     Agent *pagents = calloc(num_agents, sizeof(Agent));
-    create_agents(psurface, pagents, num_agents);
+    create_agents(pagents, num_agents);
 
     int running = 1;
     while (running) {
@@ -215,12 +226,18 @@ int main(int argc, const char *argv[]) {
 
         }
 
-        update_agents(psurface, pagents, num_agents);
+        SDL_SetRenderTarget(prenderer, ptexture);
+        update_agents(prenderer, pagents, num_agents);
 
-        SDL_UpdateWindowSurface(pwindow);
+        SDL_SetRenderTarget(prenderer, NULL);
+        SDL_RenderTexture(prenderer, ptexture, NULL, NULL);
+
+        SDL_RenderPresent(prenderer);
         SDL_Delay(20);
     }
 
+    SDL_DestroyRenderer(prenderer);
+    SDL_DestroyWindow(pwindow);
     free(pagents);
     return 0;
 
